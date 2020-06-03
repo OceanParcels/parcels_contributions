@@ -124,6 +124,6 @@ def test_OFAM(mode, chunk_mode):
 
 if __name__ == "__main__":
     # assert (test_OFAM('jit', False)) - won't work cause too big to load in 1 go in memory
-    #assert (test_OFAM('jit', 'auto'))
+    assert (test_OFAM('jit', 'auto'))
     assert (test_OFAM('jit', 'specific'))
 
