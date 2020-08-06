@@ -19,13 +19,11 @@ def SampleTemp(particle, fieldset, time):
 def SampleInitial(particle, fieldset, time): 
     if particle.sampled == 0:
          particle.temp = fieldset.temp[time, particle.depth, particle.lat, particle.lon]
-         particle.prev_lon = particle.lon
-         particle.prev_lat = particle.lat
          particle.sampled = 1
          
 # Create your kernel list to run,
 # Put the SampleInitial Kernel before the advection kernel to get the initial value of temp before the 1st advection step occurs.
-kernels = SampleInitial + pset.Kernel(AdvectionRK4) +  SampleTemp
+kernels = SampleInitial + pset.Kernel(AdvectionRK4) + SampleTemp
 
 # Excute the code
 pset.execute(kernels, 
