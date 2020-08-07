@@ -16,6 +16,8 @@ def SampleTemp(particle, fieldset, time):
     particle.temp = fieldset.temp[time, particle.depth, particle.lat, particle.lon]
 
 # Create the kernel to get the initial temperature value for each particle.
+# Note at this stage it is calculating the initial values but not recording them in the particle set file
+# This would be useful for calcuating distance travelled etc but not if you want a record of day 0 conditions.
 def SampleInitial(particle, fieldset, time): 
     if particle.sampled == 0:
          particle.temp = fieldset.temp[time, particle.depth, particle.lat, particle.lon]
@@ -24,13 +26,3 @@ def SampleInitial(particle, fieldset, time):
 # Create your kernel list to run,
 # Put the SampleInitial Kernel before the advection kernel to get the initial value of temp before the 1st advection step occurs.
 kernels = SampleInitial + pset.Kernel(AdvectionRK4) + SampleTemp
-
-# Excute the code
-pset.execute(kernels, 
-             dt=delta(minutes=30), 
-             output_file=pfile, 
-             verbose_progress=True,
-             #moviedt=delta(hours=1),
-             runtime = runtime,
-             recovery={ErrorCode.ErrorOutOfBounds: DeleteParticle})
-pfile.close()
