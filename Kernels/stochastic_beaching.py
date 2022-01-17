@@ -21,6 +21,8 @@ FieldSet requirements: The following fields/constants are required within your f
 
 Particle requirements: The particle class must contain a variable "beach", where beach == 0 indicates a particle that is afloat/adrift, and beach == 1 indicates
                        a particle that is beached. 
+                       
+Contact person: Victor Onink
 
 """
 from parcels import ParcelsRandom
