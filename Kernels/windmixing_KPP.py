@@ -27,47 +27,50 @@ Contact person: Victor Onink
 """
 
 def KPP_wind_mixing(particle, fieldset, time):
-    # Loading the mixed layer depth from the fieldset
-    mld = fieldset.MLD[time, fieldset.SURF_Z, particle.lat, particle.lon]
+  """
+  Author: Victor Onink, 25/01/22
+  """
+  # Loading the mixed layer depth from the fieldset
+  mld = fieldset.MLD[time, fieldset.SURF_Z, particle.lat, particle.lon]
 
-    # Below the MLD there is no wind-driven turbulent diffusion according to KPP theory, so we set both Kz and dKz to zero.
-    if particle.depth > mld:
-        Kz = 0
-        dKz = 0
-        
-    # Within the MLD we compute the vertical diffusion according to Boufadel et al. (2020) https://doi.org/10.1029/2019JC015727
-    else:
-        # Calculate the wind speed at the ocean surface
-        w_10 = math.sqrt(fieldset.u10[time, fieldset.SURF_Z, particle.lat, temp_lon] ** 2 + \
-                         fieldset.v10[time, fieldset.SURF_Z, particle.lat, temp_lon] ** 2)
-        
-        # Drag coefficient according to Large & Pond (1981) https://doi.org/10.1175/1520-0485(1981)011%3C0324:OOMFMI%3E2.0.CO;2
-        C_D = min(max(1.2E-3, 1.0E-3 * (0.49 + 0.065 * w_10)), 2.12E-3)
-        
-        # Calculate the surface wind stress based on the surface wind speed and the density of air
-        tau = C_D * fieldset.RHO_A * w_10 ** 2
-        
-        # Calcuate the friction velocity of water at the ocean surface using the surface wind stress and the surface water density
-        U_W = math.sqrt(tau / particle.surface_density)
-        
-        # Calcuate the surface roughness z0 following Zhao & Li (2019) https://doi.org/10.1007/s10872-018-0494-9
-        z0 = 3.5153e-5 * fieldset.BETA ** (-0.42) * w_10 ** 2 / fieldset.G
-        
-        # The corrected particle depth, since the depth is not always zero for the surface circulation data
-        z_correct = particle.depth - fieldset.SURF_Z
-        
-        # The diffusion gradient at particle.depth
-        C1 = (fieldset.VK * U_W * fieldset.THETA) / (fieldset.PHI * mld ** 2)
-        dKz = C1 * (mld - z_correct) * (mld - 3 * z_correct - 2 * z0)
-        
-        # The KPP profile vertical diffusion, at a depth corrected for the vertical gradient in Kz
-        C2 = (fieldset.VK * U_W * fieldset.THETA) / fieldset.PHI
-        Kz = C2 * (z_correct + z0) * math.pow(1 - z_correct / mld, 2)
-        
-    # The Markov-0 vertical transport from Grawe et al. (2012) http://dx.doi.org/10.1007/s10236-012-0523-y
-    gradient = dKz * particle.dt
-    R = ParcelsRandom.uniform(-1., 1.) * math.sqrt(math.fabs(particle.dt) * 3) * math.sqrt(2 * Kz)
-    rise = particle.rise_velocity * particle.dt
-    
-    # Update the particle depth
-    particle.depth = particle.depth + gradient + R + rise
+  # Below the MLD there is no wind-driven turbulent diffusion according to KPP theory, so we set both Kz and dKz to zero.
+  if particle.depth > mld:
+      Kz = 0
+      dKz = 0
+
+  # Within the MLD we compute the vertical diffusion according to Boufadel et al. (2020) https://doi.org/10.1029/2019JC015727
+  else:
+      # Calculate the wind speed at the ocean surface
+      w_10 = math.sqrt(fieldset.u10[time, fieldset.SURF_Z, particle.lat, temp_lon] ** 2 + \
+                       fieldset.v10[time, fieldset.SURF_Z, particle.lat, temp_lon] ** 2)
+
+      # Drag coefficient according to Large & Pond (1981) https://doi.org/10.1175/1520-0485(1981)011%3C0324:OOMFMI%3E2.0.CO;2
+      C_D = min(max(1.2E-3, 1.0E-3 * (0.49 + 0.065 * w_10)), 2.12E-3)
+
+      # Calculate the surface wind stress based on the surface wind speed and the density of air
+      tau = C_D * fieldset.RHO_A * w_10 ** 2
+
+      # Calcuate the friction velocity of water at the ocean surface using the surface wind stress and the surface water density
+      U_W = math.sqrt(tau / particle.surface_density)
+
+      # Calcuate the surface roughness z0 following Zhao & Li (2019) https://doi.org/10.1007/s10872-018-0494-9
+      z0 = 3.5153e-5 * fieldset.BETA ** (-0.42) * w_10 ** 2 / fieldset.G
+
+      # The corrected particle depth, since the depth is not always zero for the surface circulation data
+      z_correct = particle.depth - fieldset.SURF_Z
+
+      # The diffusion gradient at particle.depth
+      C1 = (fieldset.VK * U_W * fieldset.THETA) / (fieldset.PHI * mld ** 2)
+      dKz = C1 * (mld - z_correct) * (mld - 3 * z_correct - 2 * z0)
+
+      # The KPP profile vertical diffusion, at a depth corrected for the vertical gradient in Kz
+      C2 = (fieldset.VK * U_W * fieldset.THETA) / fieldset.PHI
+      Kz = C2 * (z_correct + z0) * math.pow(1 - z_correct / mld, 2)
+
+  # The Markov-0 vertical transport from Grawe et al. (2012) http://dx.doi.org/10.1007/s10236-012-0523-y
+  gradient = dKz * particle.dt
+  R = ParcelsRandom.uniform(-1., 1.) * math.sqrt(math.fabs(particle.dt) * 3) * math.sqrt(2 * Kz)
+  rise = particle.rise_velocity * particle.dt
+
+  # Update the particle depth
+  particle.depth = particle.depth + gradient + R + rise
