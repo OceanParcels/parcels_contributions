@@ -28,13 +28,16 @@ Contact person: Victor Onink
 from parcels import ParcelsRandom
 
 def beaching_kernel(particle, fieldset, time):
-    # Beaching
-    if particle.beach == 0:
-        dist = fieldset.distance2shore[time, particle.depth, particle.lat, particle.lon]
-        if dist < fieldset.Coastal_Boundary:
-            if ParcelsRandom.uniform(0, 1) > fieldset.p_beach:
-                particle.beach = 1
-    # Resuspension
-    elif particle.beach == 1:
-        if ParcelsRandom.uniform(0, 1) > fieldset.p_resus:
-            particle.beach = 0
+  """
+  Author: Victor Onink, 25/01/2022
+  """
+  # Beaching
+  if particle.beach == 0:
+    dist = fieldset.distance2shore[time, particle.depth, particle.lat, particle.lon]
+    if dist < fieldset.Coastal_Boundary:
+        if ParcelsRandom.uniform(0, 1) > fieldset.p_beach:
+            particle.beach = 1
+  # Resuspension
+  elif particle.beach == 1:
+    if ParcelsRandom.uniform(0, 1) > fieldset.p_resus:
+        particle.beach = 0
