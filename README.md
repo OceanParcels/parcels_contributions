@@ -22,11 +22,11 @@ Please do so via a pull request.
 
 Those scripts represent either novel application kernels or more extensive example scripts for Parcels simulations, and thus require [parcels](https://github.com/OceanParcels/parcels) as a package.
 
-Libraries for simulations: parcels (on conda-forge)
+* Libraries for simulations: parcels (on conda-forge)
 
 
 ### VTK transform script
 
 For running the 'transform_to_vtk.py' scripts in the _Snippets_ folder, you need to get the VTK library (also available via conda):
 
-visualisation library: vtk (on anaconda and conda-forge)
+* visualisation library: vtk (on anaconda and conda-forge)
