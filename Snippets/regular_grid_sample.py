@@ -124,8 +124,8 @@ if __name__=='__main__':
     us_per_sec = np.timedelta64(1, 's')  # nanoseconds in an sec
     global_fT = np.arange(0, timerange, np.timedelta64(delta(minutes=outdt_minutes)))
     fT = (global_fT/us_per_sec).astype(np.float64)
-    time_in_min = np.nanmin(fT, axis=0)
-    time_in_max = np.nanmax(fT, axis=0)
+    # time_in_min = np.nanmin(fT, axis=0)
+    # time_in_max = np.nanmax(fT, axis=0)
 
     step = 1.0/gres
     xsteps = int(np.floor(a * gres))
@@ -137,38 +137,6 @@ if __name__=='__main__':
     centers_y = yval + step/2.0
     us = np.zeros((centers_y.shape[0], centers_x.shape[0]))
     vs = np.zeros((centers_y.shape[0], centers_x.shape[0]))
-
-    grid_file = h5py.File(os.path.join(outdir, "grid.h5"), "w")
-    grid_lon_ds = grid_file.create_dataset("longitude", data=centers_x, compression="gzip", compression_opts=4)
-    grid_lon_ds.attrs['unit'] = "arc degree"
-    grid_lon_ds.attrs['name'] = 'longitude'
-    grid_lon_ds.attrs['min'] = centers_x.min()
-    grid_lon_ds.attrs['max'] = centers_x.max()
-    grid_lat_ds = grid_file.create_dataset("latitude", data=centers_y, compression="gzip", compression_opts=4)
-    grid_lat_ds.attrs['unit'] = "arc degree"
-    grid_lat_ds.attrs['name'] = 'latitude'
-    grid_lat_ds.attrs['min'] = centers_y.min()
-    grid_lat_ds.attrs['max'] = centers_y.max()
-    grid_time_ds = grid_file.create_dataset("times", data=fT, compression="gzip", compression_opts=4)
-    grid_time_ds.attrs['unit'] = "seconds"
-    grid_time_ds.attrs['name'] = 'time'
-    grid_time_ds.attrs['min'] = np.nanmin(fT)
-    grid_time_ds.attrs['max'] = np.nanmax(fT)
-    grid_file.close()
-
-    us_minmax = [0., 0.]
-    us_statistics = [0., 0.]
-    us_file = h5py.File(os.path.join(outdir, "hydrodynamic_U.h5"), "w")
-    us_file_ds = us_file.create_dataset("uo", shape=(1, us.shape[0], us.shape[1]), dtype=us.dtype, maxshape=(fT.shape[0], us.shape[0], us.shape[1]), compression="gzip", compression_opts=4)
-    us_file_ds.attrs['unit'] = "m/s"
-    us_file_ds.attrs['name'] = 'meridional_velocity'
-
-    vs_minmax = [0., 0.]
-    vs_statistics = [0., 0.]
-    vs_file = h5py.File(os.path.join(outdir, "hydrodynamic_V.h5"), "w")
-    vs_file_ds = vs_file.create_dataset("vo", shape=(1, vs.shape[0], vs.shape[1]), dtype=vs.dtype, maxshape=(fT.shape[0], vs.shape[0], vs.shape[1]), compression="gzip", compression_opts=4)
-    vs_file_ds.attrs['unit'] = "m/s"
-    vs_file_ds.attrs['name'] = 'zonal_velocity'
 
     print("Sampling UV on CMEMS grid ...")
     sample_time = 0
@@ -187,6 +155,7 @@ if __name__=='__main__':
 
     print("Load sampled data ...")
     sample_xarray = xr.open_dataset(os.path.join(outdir, sample_outname + ".nc"))
+    print(sample_xarray.keys())
     N_s = sample_xarray['lon'].shape[0]
     tN_s = sample_xarray['lon'].shape[1]
     if DBG_MSG:
@@ -197,7 +166,8 @@ if __name__=='__main__':
     ctime_array_s = sample_xarray['time'].data
     time_in_min_s = np.nanmin(ctime_array_s, axis=0)
     time_in_max_s = np.nanmax(ctime_array_s, axis=0)
-    assert ctime_array_s.shape[1] == time_in_min.shape[0]
+    assert (ctime_array_s.shape[1] - fT.shape[0]) < 2 , "time array of sample (|T|={}) not equal to input time array (|T|={})".format(ctime_array_s.shape[1], fT.shape[0])
+    assert (ctime_array_s.shape[1] - fT.shape[0]) >= 0, "time array of sample (|T|={}) not equal to input time array (|T|={})".format(ctime_array_s.shape[1], fT.shape[0])
     mask_array_s = valid_array
     for ti in range(ctime_array_s.shape[1]):
         replace_indices = np.isnan(ctime_array_s[:, ti])
@@ -208,6 +178,38 @@ if __name__=='__main__':
     dtime_array_s = ctime_array_s - timebase_s
     if DBG_MSG:
         print("time info from file after baselining: shape = {} type = {} range = {}".format( dtime_array_s.shape, type(dtime_array_s[0 ,0]), (np.min(dtime_array_s), np.max(dtime_array_s)) ))
+
+    grid_file = h5py.File(os.path.join(outdir, "grid.h5"), "w")
+    grid_lon_ds = grid_file.create_dataset("longitude", data=centers_x, compression="gzip", compression_opts=4)
+    grid_lon_ds.attrs['unit'] = "arc degree"
+    grid_lon_ds.attrs['name'] = 'longitude'
+    grid_lon_ds.attrs['min'] = centers_x.min()
+    grid_lon_ds.attrs['max'] = centers_x.max()
+    grid_lat_ds = grid_file.create_dataset("latitude", data=centers_y, compression="gzip", compression_opts=4)
+    grid_lat_ds.attrs['unit'] = "arc degree"
+    grid_lat_ds.attrs['name'] = 'latitude'
+    grid_lat_ds.attrs['min'] = centers_y.min()
+    grid_lat_ds.attrs['max'] = centers_y.max()
+    grid_time_ds = grid_file.create_dataset("times", data=dtime_array_s, compression="gzip", compression_opts=4)
+    grid_time_ds.attrs['unit'] = "seconds"
+    grid_time_ds.attrs['name'] = 'time'
+    grid_time_ds.attrs['min'] = np.nanmin(dtime_array_s)
+    grid_time_ds.attrs['max'] = np.nanmax(dtime_array_s)
+    grid_file.close()
+
+    us_minmax = [0., 0.]
+    us_statistics = [0., 0.]
+    us_file = h5py.File(os.path.join(outdir, "hydrodynamic_U.h5"), "w")
+    us_file_ds = us_file.create_dataset("uo", shape=(1, us.shape[0], us.shape[1]), dtype=us.dtype, maxshape=(dtime_array_s.shape[0], us.shape[0], us.shape[1]), compression="gzip", compression_opts=4)
+    us_file_ds.attrs['unit'] = "m/s"
+    us_file_ds.attrs['name'] = 'meridional_velocity'
+
+    vs_minmax = [0., 0.]
+    vs_statistics = [0., 0.]
+    vs_file = h5py.File(os.path.join(outdir, "hydrodynamic_V.h5"), "w")
+    vs_file_ds = vs_file.create_dataset("vo", shape=(1, vs.shape[0], vs.shape[1]), dtype=vs.dtype, maxshape=(dtime_array_s.shape[0], vs.shape[0], vs.shape[1]), compression="gzip", compression_opts=4)
+    vs_file_ds.attrs['unit'] = "m/s"
+    vs_file_ds.attrs['name'] = 'zonal_velocity'
 
     psX = sample_xarray['lon']
     psY = sample_xarray['lat']
@@ -248,7 +250,7 @@ if __name__=='__main__':
         vs_file_ds.resize((ti+1), axis=0)
         vs_file_ds[ti, :, :] = vs
 
-        current_item = ti
+        current_item = ti+1
         workdone = current_item / total_items
         print("\rProgress: [{0:50s}] {1:.1f}%".format('#' * int(workdone * 50), workdone * 100), end="", flush=True)
     print("\nFinished UV-interpolation.")
